@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>COVID-19 Epidemiological Dashboard</title>
+
+<!-- Thai Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Leaflet Map -->
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Noto Sans Thai", sans-serif;
+    background: #f5f7fb;
+    color: #263238;
+}
+
+.container {
+    max-width: 1400px;
+    margin: auto;
+    padding: 25px;
+}
+
+/* Header */
+
+.header {
+    background: linear-gradient(135deg, #075985, #0e7490);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 27px;
+}
+
+.header p {
+    margin: 6px 0 0;
+    opacity: 0.9;
+}
+
+/* Cards */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 22px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+    border: 1px solid #edf0f5;
+}
+
+.card-title {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.card-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-top: 7px;
+    color: #0f172a;
+}
+
+.card-small {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+/* Filter */
+
+.section {
+    background: white;
+    border-radius: 15px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 18px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #475569;
+}
+
+select {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #dbe1e8;
+    border-radius: 9px;
+    background: white;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+button {
+    border: none;
+    padding: 11px 18px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+}
+
+.reset-btn {
+    margin-top: 20px;
+    background: #e2e8f0;
+    color: #334155;
+}
+
+/* Charts */
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.chart-box {
+    height: 330px;
+}
+
+/* Map */
+
+#map {
+    height: 500px;
+    width: 100%;
+    border-radius: 12px;
+}
+
+/* Legend */
+
+.legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.low {
+    background: #22c55e;
+}
+
+.medium {
+    background: #f59e0b;
+}
+
+.high {
+    background: #ef4444;
+}
+
+.critical {
+    background: #7f1d1d;
+}
+
+/* Footer */
+
+.footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    padding: 20px;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .container {
+        padding: 12px;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header h1 {
+        font-size: 21px;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <h1>
+            🦠 ระบบสารสนเทศเฝ้าระวังการระบาดวิทยาโรค COVID-19
+        </h1>
+
+        <p>
+            COVID-19 Epidemiological Surveillance & Data Analysis Dashboard
+        </p>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+
+    <div class="summary-grid">
+
+        <div class="card">
+
+            <div class="card-title">
+                👥 ติดเชื้อสะสม
+            </div>
+
+            <div class="card-value" id="total">
+                1,500
+            </div>
+
+            <div class="card-small">
+                ทั้งหมดในฐานข้อมูล
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                ⚥ สัดส่วนเพศชาย : หญิง
+            </div>
+
+            <div class="card-value">
+                599 : 591
+            </div>
+
+            <div class="card-small">
+                ชาย 39.9% | หญิง 39.4%
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                🎂 อายุเฉลี่ย
+            </div>
+
+            <div class="card-value">
+                43.2 ปี
+            </div>
+
+            <div class="card-small">
+                ประมวลผลจากข้อมูลทั้งหมด
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                📍 จังหวัดพบมากที่สุด
+            </div>
+
+            <div class="card-value" style="font-size:22px;">
+                กรุงเทพมหานคร
+            </div>
+
+            <div class="card-small">
+                548 ราย (36.5%)
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FILTER -->
+
+    <div class="section">
+
+        <div class="section-title">
+            🔎 กรองข้อมูลการระบาดวิทยา (Filter Data)
+        </div>
+
+        <div class="filter-grid">
+
+            <div>
+
+                <label>
+                    จังหวัด (Isolation Province)
+                </label>
+
+                <select id="province">
+
+                    <option value="all">
+                        -- ทุกจังหวัด (77 จังหวัด) --
+                    </option>
+
+                    <option>
+                        กรุงเทพมหานคร
+                    </option>
+
+                    <option>
+                        ขอนแก่น
+                    </option>
+
+                    <option>
+                        นครราชสีมา
+                    </option>
+
+                    <option>
+                        เชียงใหม่
+                    </option>
+
+                    <option>
+                        ภูเก็ต
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    เพศ (Gender)
+                </label>
+
+                <select id="gender">
+
+                    <option value="all">
+                        -- ทุกเพศ --
+                    </option>
+
+                    <option>
+                        ชาย
+                    </option>
+
+                    <option>
+                        หญิง
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    ช่วงอายุ (Age Group)
+                </label>
+
+                <select id="age">
+
+                    <option value="all">
+                        -- ทุกช่วงอายุ --
+                    </option>
+
+                    <option>
+                        0-14 ปี
+                    </option>
+
+                    <option>
+                        15-24 ปี
+                    </option>
+
+                    <option>
+                        25-44 ปี
+                    </option>
+
+                    <option>
+                        45-64 ปี
+                    </option>
+
+                    <option>
+                        65 ปีขึ้นไป
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    ปัจจัยเสี่ยง (Risk Factor)
+                </label>
+
+                <select id="risk">
+
+                    <option value="all">
+                        -- ทุกปัจจัยเสี่ยง --
+                    </option>
+
+                    <option>
+                        สัมผัสผู้ป่วย
+                    </option>
+
+                    <option>
+                        เดินทาง
+                    </option>
+
+                    <option>
+                        สถานที่แออัด
+                    </option>
+
+                    <option>
+                        ไม่ทราบสาเหตุ
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <button class="reset-btn" onclick="resetFilter()">
+            ↻ รีเซ็ตตัวกรอง
+        </button>
+
+    </div>
+
+
+    <!-- CHARTS -->
+
+    <div class="chart-grid">
+
+        <div class="section">
+
+            <div class="section-title">
+                📊 จำนวนผู้ติดเชื้อจำแนกตามเพศ
+            </div>
+
+            <div class="chart-box">
+
+                <canvas id="genderChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <div class="section-title">
+                📈 จำนวนผู้ติดเชื้อจำแนกตามช่วงอายุ
+            </div>
+
+            <div class="chart-box">
+
+                <canvas id="ageChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MAP -->
+
+    <div class="section">
+
+        <div class="section-title">
+            🗺️ แผนที่ภูมิศาสตร์และขอบเขตการระบาด (GIS Interactive Map)
+        </div>
+
+        <div class="legend">
+
+            <div class="legend-item">
+                <span class="dot low"></span>
+                ต่ำ (1-50)
+            </div>
+
+            <div class="legend-item">
+                <span class="dot medium"></span>
+                ปานกลาง (51-150)
+            </div>
+
+            <div class="legend-item">
+                <span class="dot high"></span>
+                สูง (151-300)
+            </div>
+
+            <div class="legend-item">
+                <span class="dot critical"></span>
+                วิกฤต (>300)
+            </div>
+
+        </div>
+
+        <div id="map"></div>
+
+    </div>
+
+
+    <!
