@@ -4,22 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>COVID-19 Epidemiological Dashboard</title>
+<title>COVID-19 Dashboard Tracker</title>
 
-<!-- Thai Font -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Leaflet Map -->
 <link rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-
 * {
     box-sizing: border-box;
 }
@@ -27,507 +23,330 @@ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 body {
     margin: 0;
     font-family: "Noto Sans Thai", sans-serif;
-    background: #f5f7fb;
-    color: #263238;
+    background: #fff5f7;
+    color: #333;
+}
+
+.header {
+    background: linear-gradient(135deg, #1769e0, #0755c9);
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.header-small {
+    font-size: 13px;
+    opacity: .9;
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1100px;
     margin: auto;
-    padding: 25px;
+    padding: 22px;
 }
 
-/* Header */
+.upload-box {
+    background: white;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
 
-.header {
-    background: linear-gradient(135deg, #075985, #0e7490);
+.upload-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.upload-description {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 15px;
+}
+
+.file-button {
+    display: inline-block;
+    background: #1473e6;
     color: white;
-    padding: 25px 30px;
-    border-radius: 18px;
-    margin-bottom: 20px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    padding: 11px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
 }
 
-.header h1 {
-    margin: 0;
-    font-size: 27px;
+.file-button:hover {
+    background: #075cc5;
 }
 
-.header p {
-    margin: 6px 0 0;
-    opacity: 0.9;
+#excelFile {
+    display: none;
 }
 
-/* Cards */
+.status {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #555;
+}
 
-.summary-grid {
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 20px 0 14px;
+    border-left: 5px solid #1769e0;
+    padding-left: 10px;
+}
+
+.cards {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 18px;
-    margin-bottom: 20px;
 }
 
 .card {
     background: white;
-    border-radius: 15px;
+    border-radius: 12px;
     padding: 22px;
-    box-shadow: 0 3px 15px rgba(0,0,0,0.06);
-    border: 1px solid #edf0f5;
+    min-height: 125px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    position: relative;
+}
+
+.card.total {
+    border-top: 4px solid #df3f55;
+}
+
+.card.male {
+    border-top: 4px solid #367de8;
+}
+
+.card.female {
+    border-top: 4px solid #e35ca8;
+}
+
+.card.age {
+    border-top: 4px solid #e0a62d;
 }
 
 .card-title {
-    color: #6b7280;
     font-size: 14px;
+    color: #555;
 }
 
 .card-value {
     font-size: 28px;
     font-weight: 700;
-    margin-top: 7px;
-    color: #0f172a;
+    margin-top: 5px;
 }
 
-.card-small {
-    color: #64748b;
-    font-size: 13px;
-    margin-top: 4px;
+.card-sub {
+    font-size: 12px;
+    color: #888;
 }
 
-/* Filter */
+.icon {
+    position: absolute;
+    right: 20px;
+    top: 25px;
+    font-size: 25px;
+}
 
-.section {
+.map-box {
     background: white;
-    border-radius: 15px;
-    padding: 22px;
-    margin-bottom: 20px;
-    box-shadow: 0 3px 15px rgba(0,0,0,0.05);
-}
-
-.section-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 18px;
-}
-
-.filter-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-}
-
-label {
-    display: block;
-    font-size: 13px;
-    margin-bottom: 6px;
-    color: #475569;
-}
-
-select {
-    width: 100%;
-    padding: 11px;
-    border: 1px solid #dbe1e8;
-    border-radius: 9px;
-    background: white;
-    font-family: inherit;
-    font-size: 14px;
-}
-
-button {
-    border: none;
-    padding: 11px 18px;
-    border-radius: 9px;
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: 600;
-}
-
-.reset-btn {
-    margin-top: 20px;
-    background: #e2e8f0;
-    color: #334155;
-}
-
-/* Charts */
-
-.chart-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.chart-box {
-    height: 330px;
-}
-
-/* Map */
-
-#map {
-    height: 500px;
-    width: 100%;
     border-radius: 12px;
+    padding: 15px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
 }
 
-/* Legend */
-
-.legend {
+.map-header {
     display: flex;
-    gap: 18px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
     margin-bottom: 12px;
 }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
+.map-label {
+    background: #eef2ff;
+    color: #4b55a5;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
 }
 
-.dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    display: inline-block;
+#map {
+    height: 500px;
+    border-radius: 8px;
 }
 
-.low {
-    background: #22c55e;
+.note {
+    font-size: 11px;
+    color: #777;
+    margin-top: 8px;
 }
 
-.medium {
-    background: #f59e0b;
-}
-
-.high {
-    background: #ef4444;
-}
-
-.critical {
-    background: #7f1d1d;
-}
-
-/* Footer */
-
-.footer {
-    text-align: center;
-    color: #64748b;
-    font-size: 13px;
-    padding: 20px;
-}
-
-/* Responsive */
-
-@media (max-width: 900px) {
-
-    .summary-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .filter-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .chart-grid {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-@media (max-width: 600px) {
-
+@media(max-width:600px) {
     .container {
         padding: 12px;
     }
 
-    .summary-grid {
+    .cards {
         grid-template-columns: 1fr;
     }
 
-    .filter-grid {
-        grid-template-columns: 1fr;
+    .header {
+        padding: 15px;
     }
 
-    .header h1 {
-        font-size: 21px;
+    .header-title {
+        font-size: 17px;
     }
 
+    #map {
+        height: 400px;
+    }
 }
-
 </style>
 </head>
 
 <body>
 
+<div class="header">
+    <div class="header-title">
+        ⚙️ COVID-19 Dashboard Tracker
+    </div>
+
+    <div class="header-small">
+        อัปเดตข้อมูลล่าสุด
+    </div>
+</div>
+
 <div class="container">
 
-    <!-- HEADER -->
+    <!-- Upload Excel -->
 
-    <div class="header">
+    <div class="upload-box">
 
-        <h1>
-            🦠 ระบบสารสนเทศเฝ้าระวังการระบาดวิทยาโรค COVID-19
-        </h1>
-
-        <p>
-            COVID-19 Epidemiological Surveillance & Data Analysis Dashboard
-        </p>
-
-    </div>
-
-
-    <!-- SUMMARY -->
-
-    <div class="summary-grid">
-
-        <div class="card">
-
-            <div class="card-title">
-                👥 ติดเชื้อสะสม
-            </div>
-
-            <div class="card-value" id="total">
-                1,500
-            </div>
-
-            <div class="card-small">
-                ทั้งหมดในฐานข้อมูล
-            </div>
-
+        <div class="upload-title">
+            อัปโหลดข้อมูลจากไฟล์ Excel
         </div>
 
-
-        <div class="card">
-
-            <div class="card-title">
-                ⚥ สัดส่วนเพศชาย : หญิง
-            </div>
-
-            <div class="card-value">
-                599 : 591
-            </div>
-
-            <div class="card-small">
-                ชาย 39.9% | หญิง 39.4%
-            </div>
-
+        <div class="upload-description">
+            กรุณาเลือกไฟล์ Excel เพื่อวิเคราะห์ข้อมูลล่าสุด
         </div>
 
+        <label class="file-button" for="excelFile">
+            📄 เลือกไฟล์ Excel
+        </label>
 
-        <div class="card">
+        <input
+            type="file"
+            id="excelFile"
+            accept=".xlsx,.xls,.csv"
+        >
 
-            <div class="card-title">
-                🎂 อายุเฉลี่ย
-            </div>
-
-            <div class="card-value">
-                43.2 ปี
-            </div>
-
-            <div class="card-small">
-                ประมวลผลจากข้อมูลทั้งหมด
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                📍 จังหวัดพบมากที่สุด
-            </div>
-
-            <div class="card-value" style="font-size:22px;">
-                กรุงเทพมหานคร
-            </div>
-
-            <div class="card-small">
-                548 ราย (36.5%)
-            </div>
-
+        <div class="status" id="status">
+            ยังไม่ได้เลือกไฟล์
         </div>
 
     </div>
 
 
-    <!-- FILTER -->
+    <!-- Summary -->
 
-    <div class="section">
-
-        <div class="section-title">
-            🔎 กรองข้อมูลการระบาดวิทยา (Filter Data)
-        </div>
-
-        <div class="filter-grid">
-
-            <div>
-
-                <label>
-                    จังหวัด (Isolation Province)
-                </label>
-
-                <select id="province">
-
-                    <option value="all">
-                        -- ทุกจังหวัด (77 จังหวัด) --
-                    </option>
-
-                    <option>
-                        กรุงเทพมหานคร
-                    </option>
-
-                    <option>
-                        ขอนแก่น
-                    </option>
-
-                    <option>
-                        นครราชสีมา
-                    </option>
-
-                    <option>
-                        เชียงใหม่
-                    </option>
-
-                    <option>
-                        ภูเก็ต
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div>
-
-                <label>
-                    เพศ (Gender)
-                </label>
-
-                <select id="gender">
-
-                    <option value="all">
-                        -- ทุกเพศ --
-                    </option>
-
-                    <option>
-                        ชาย
-                    </option>
-
-                    <option>
-                        หญิง
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div>
-
-                <label>
-                    ช่วงอายุ (Age Group)
-                </label>
-
-                <select id="age">
-
-                    <option value="all">
-                        -- ทุกช่วงอายุ --
-                    </option>
-
-                    <option>
-                        0-14 ปี
-                    </option>
-
-                    <option>
-                        15-24 ปี
-                    </option>
-
-                    <option>
-                        25-44 ปี
-                    </option>
-
-                    <option>
-                        45-64 ปี
-                    </option>
-
-                    <option>
-                        65 ปีขึ้นไป
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div>
-
-                <label>
-                    ปัจจัยเสี่ยง (Risk Factor)
-                </label>
-
-                <select id="risk">
-
-                    <option value="all">
-                        -- ทุกปัจจัยเสี่ยง --
-                    </option>
-
-                    <option>
-                        สัมผัสผู้ป่วย
-                    </option>
-
-                    <option>
-                        เดินทาง
-                    </option>
-
-                    <option>
-                        สถานที่แออัด
-                    </option>
-
-                    <option>
-                        ไม่ทราบสาเหตุ
-                    </option>
-
-                </select>
-
-            </div>
-
-        </div>
-
-        <button class="reset-btn" onclick="resetFilter()">
-            ↻ รีเซ็ตตัวกรอง
-        </button>
-
+    <div class="section-title">
+        ภาพรวมสถานการณ์
     </div>
 
+    <div class="cards">
 
-    <!-- CHARTS -->
+        <div class="card total">
 
-    <div class="chart-grid">
-
-        <div class="section">
-
-            <div class="section-title">
-                📊 จำนวนผู้ติดเชื้อจำแนกตามเพศ
+            <div class="card-title">
+                ผู้ป่วยยืนยันสะสม
             </div>
 
-            <div class="chart-box">
+            <div class="card-value" id="totalCases">
+                0
+            </div>
 
-                <canvas id="genderChart"></canvas>
+            <div class="card-sub">
+                จากข้อมูลล่าสุด
+            </div>
 
+            <div class="icon">
+                👥
             </div>
 
         </div>
 
 
-        <div class="section">
+        <div class="card male">
 
-            <div class="section-title">
-                📈 จำนวนผู้ติดเชื้อจำแนกตามช่วงอายุ
+            <div class="card-title">
+                เพศชาย
             </div>
 
-            <div class="chart-box">
+            <div class="card-value" id="maleCases">
+                0
+            </div>
 
-                <canvas id="ageChart"></canvas>
+            <div class="card-sub" id="malePercent">
+                0% ของทั้งหมด
+            </div>
 
+            <div class="icon">
+                ♂️
+            </div>
+
+        </div>
+
+
+        <div class="card female">
+
+            <div class="card-title">
+                เพศหญิง
+            </div>
+
+            <div class="card-value" id="femaleCases">
+                0
+            </div>
+
+            <div class="card-sub" id="femalePercent">
+                0% ของทั้งหมด
+            </div>
+
+            <div class="icon">
+                ♀️
+            </div>
+
+        </div>
+
+
+        <div class="card age">
+
+            <div class="card-title">
+                อายุเฉลี่ย (ปี)
+            </div>
+
+            <div class="card-value" id="averageAge">
+                -
+            </div>
+
+            <div class="card-sub">
+                จากข้อมูลอายุ
+            </div>
+
+            <div class="icon">
+                🎂
             </div>
 
         </div>
@@ -535,41 +354,161 @@ button {
     </div>
 
 
-    <!-- MAP -->
+    <!-- Map -->
 
-    <div class="section">
+    <div class="map-box">
 
-        <div class="section-title">
-            🗺️ แผนที่ภูมิศาสตร์และขอบเขตการระบาด (GIS Interactive Map)
-        </div>
+        <div class="map-header">
 
-        <div class="legend">
+            <span>
+                🗺️ แผนที่กระจายตัวผู้ป่วยระดับจังหวัด
+            </span>
 
-            <div class="legend-item">
-                <span class="dot low"></span>
-                ต่ำ (1-50)
-            </div>
-
-            <div class="legend-item">
-                <span class="dot medium"></span>
-                ปานกลาง (51-150)
-            </div>
-
-            <div class="legend-item">
-                <span class="dot high"></span>
-                สูง (151-300)
-            </div>
-
-            <div class="legend-item">
-                <span class="dot critical"></span>
-                วิกฤต (>300)
-            </div>
+            <span class="map-label">
+                Interactive Map
+            </span>
 
         </div>
 
         <div id="map"></div>
 
+        <div class="note">
+            * ขนาดวงกลมแสดงจำนวนผู้ป่วยในแต่ละจังหวัด
+        </div>
+
     </div>
 
+</div>
 
-    <!
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+/* ================================
+   แผนที่ประเทศไทย
+================================ */
+
+const map = L.map("map").setView([13.5, 101], 5.5);
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        attribution: "&copy; OpenStreetMap contributors"
+    }
+).addTo(map);
+
+
+/* ตำแหน่งจังหวัด */
+
+const provinces = {
+
+    "กรุงเทพมหานคร":[13.7563,100.5018],
+    "กระบี่":[8.0863,98.9063],
+    "กาญจนบุรี":[14.0228,99.5328],
+    "กาฬสินธุ์":[16.4314,103.5059],
+    "กำแพงเพชร":[16.4828,99.5227],
+    "ขอนแก่น":[16.4322,102.8236],
+    "จันทบุรี":[12.6113,102.1039],
+    "ฉะเชิงเทรา":[13.6904,101.0779],
+    "ชลบุรี":[13.3611,100.9847],
+    "ชัยนาท":[15.1852,100.1251],
+    "ชัยภูมิ":[15.8068,102.0315],
+    "ชุมพร":[10.4930,99.1800],
+    "ตรัง":[7.5594,99.6114],
+    "ตราด":[12.2428,102.5175],
+    "ตาก":[16.8839,99.1259],
+    "นครนายก":[14.2069,101.2131],
+    "นครปฐม":[13.8199,100.0622],
+    "นครพนม":[17.3920,104.7695],
+    "นครราชสีมา":[14.9799,102.0977],
+    "นครศรีธรรมราช":[8.4304,99.9631],
+    "นครสวรรค์":[15.7047,100.1372],
+    "นนทบุรี":[13.8621,100.5144],
+    "นราธิวาส":[6.4255,101.8253],
+    "น่าน":[18.7838,100.7790],
+    "บึงกาฬ":[18.3609,103.6464],
+    "บุรีรัมย์":[14.9930,103.1029],
+    "ปทุมธานี":[14.0208,100.5250],
+    "ประจวบคีรีขันธ์":[11.8126,99.7973],
+    "ปราจีนบุรี":[14.0509,101.3727],
+    "ปัตตานี":[6.8667,101.2500],
+    "พะเยา":[19.1667,99.9000],
+    "พังงา":[8.4500,98.5250],
+    "พัทลุง":[7.6167,100.0833],
+    "พิจิตร":[16.4419,100.3488],
+    "พิษณุโลก":[16.8211,100.2659],
+    "ภูเก็ต":[7.8804,98.3923],
+    "มหาสารคาม":[16.1840,103.3000],
+    "มุกดาหาร":[16.5453,104.7235],
+    "ยะลา":[6.5411,101.2804],
+    "ยโสธร":[15.7941,104.1451],
+    "ร้อยเอ็ด":[16.0567,103.6520],
+    "ระนอง":[9.9529,98.6389],
+    "ระยอง":[12.6814,101.2816],
+    "ราชบุรี":[13.5283,99.8134],
+    "ลพบุรี":[14.7995,100.6534],
+    "ลำปาง":[18.2888,99.4909],
+    "ลำพูน":[18.5745,99.0087],
+    "ศรีสะเกษ":[15.1186,104.3220],
+    "สกลนคร":[17.1546,104.1348],
+    "สงขลา":[7.1898,100.5954],
+    "สตูล":[6.6238,100.0674],
+    "สมุทรปราการ":[13.5991,100.5998],
+    "สมุทรสงคราม":[13.4098,99.9992],
+    "สมุทรสาคร":[13.5475,100.2744],
+    "สระบุรี":[14.5289,100.9101],
+    "สระแก้ว":[13.8240,102.0645],
+    "สุพรรณบุรี":[14.4745,100.1177],
+    "สุราษฎร์ธานี":[9.1382,99.3217],
+    "สุรินทร์":[14.8818,103.4936],
+    "สุโขทัย":[17.0078,99.8236],
+    "หนองคาย":[17.8783,102.7413],
+    "หนองบัวลำภู":[17.2041,102.4407],
+    "อำนาจเจริญ":[15.8657,104.6258],
+    "อุดรธานี":[17.4138,102.7875],
+    "อุตรดิตถ์":[17.6201,100.0993],
+    "อุทัยธานี":[15.3835,100.0246],
+    "อุบลราชธานี":[15.2287,104.8564],
+    "เชียงราย":[19.9072,99.8309],
+    "เชียงใหม่":[18.7883,98.9853],
+    "เพชรบุรี":[13.1119,99.9398],
+    "เพชรบูรณ์":[16.4190,101.1606],
+    "เลย":[17.4860,101.7223],
+    "แพร่":[18.1446,100.1403],
+    "แม่ฮ่องสอน":[19.3020,97.9654],
+    "นครปฐม":[13.8199,100.0622]
+
+};
+
+
+/* ================================
+   ตัวแปรข้อมูล
+================================ */
+
+let allData = [];
+let markers = [];
+
+
+/* ================================
+   ตรวจชื่อคอลัมน์
+================================ */
+
+function findColumn(row, names) {
+
+    const keys = Object.keys(row);
+
+    for (const key of keys) {
+
+        const cleanKey =
+            String(key)
+            .trim()
+            .toLowerCase();
+
+        for (const name of names) {
+
+            if (
+                cleanKey.includes(
+                    name.toLowerCase()
+                )
+            ) {
